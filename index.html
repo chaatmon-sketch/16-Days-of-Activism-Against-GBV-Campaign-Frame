@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>16 Days of Activism – Campaign Photo Frame</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      text-align: center;
+      margin-bottom: 0.3rem;
+    }
+
+    p {
+      max-width: 480px;
+      text-align: center;
+      color: #444;
+      margin: 0 0 1rem;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    input[type="file"] {
+      max-width: 260px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: #e35b18;
+      border: none;
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    canvas {
+      background: #ccc;
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    }
+
+    small {
+      margin-top: 0.6rem;
+      text-align: center;
+      color: #666;
+      max-width: 480px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>16 Days of Activism – Campaign Frame</h1>
+  <p>Upload your photo below to generate your solidarity profile image.</p>
+
+  <div class="controls">
+    <input type="file" id="upload" accept="image/*">
+    <button id="downloadBtn" disabled>Download My Poster</button>
+  </div>
+
+  <canvas id="poster"></canvas>
+
+  <small>All processing happens in your browser. Your image is never uploaded to a server.</small>
+
+  <script>
+    const canvas = document.getElementById("poster");
+    const ctx = canvas.getContext("2d");
+    const uploadInput = document.getElementById("upload");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    const frame = new Image();
+    frame.src = "frame.png"; // your poster frame image at repo root
+
+    let frameLoaded = false;
+    let userImg = null;
+
+    frame.onload = () => {
+      frameLoaded = true;
+
+      // Match canvas size to the frame
+      canvas.width = frame.naturalWidth || frame.width;
+      canvas.height = frame.naturalHeight || frame.height;
+
+      // Draw frame by itself initially
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+    };
+
+    frame.onerror = () => {
+      alert("Could not load frame.png. Make sure it is in the same place as index.html and named exactly 'frame.png'.");
+    };
+
+    // Draw frame in the background and photo in a central "window" on top
+    function drawComposite() {
+      if (!frameLoaded || !userImg) return;
+
+      const cw = canvas.width;
+      const ch = canvas.height;
+
+      // 1) Draw the frame as full background
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.drawImage(frame, 0, 0, cw, ch);
+
+      // 2) Define the photo window (centre area)
+      // You can tweak these values to better fit your design
+      const windowWidth = cw * 0.7;
+      const windowHeight = ch * 0.7;
+      const windowX = (cw - windowWidth) / 2;
+      const windowY = (ch - windowHeight) / 2;
+
+      const iw = userImg.naturalWidth || userImg.width;
+      const ih = userImg.naturalHeight || userImg.height;
+
+      // Scale photo to COVER the window area
+      const scale = Math.max(windowWidth / iw, windowHeight / ih);
+      const drawWidth = iw * scale;
+      const drawHeight = ih * scale;
+      const dx = windowX + (windowWidth - drawWidth) / 2;
+      const dy = windowY + (windowHeight - drawHeight) / 2;
+
+      // 3) Clip to the window and draw the user photo
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(windowX, windowY, windowWidth, windowHeight);
+      ctx.clip();
+      ctx.drawImage(userImg, dx, dy, drawWidth, drawHeight);
+      ctx.restore();
+    }
+
+    uploadInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.onload = () => {
+        userImg = img;
+        drawComposite();
+        downloadBtn.disabled = false;
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = "16days-campaign.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+  </script>
+</body>
+</html>
